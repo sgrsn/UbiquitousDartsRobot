@@ -20,7 +20,6 @@ import OpenRTM_aist
 import cv2
 import numpy as np
 
-
 # Import Service implementation class
 # <rtc-template block="service_impl">
 
@@ -87,10 +86,14 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
   def __init__(self, manager):
     OpenRTM_aist.DataFlowComponentBase.__init__(self, manager)
 
-    self._d_target_output = OpenRTM_aist.instantiateDataType(RTC.TimedPose2D)
+    self._d_target_output = OpenRTM_aist.instantiateDataType(RTC.TimedPoint2D)
     """
     """
     self._target_outputOut = OpenRTM_aist.OutPort("target_output", self._d_target_output)
+    self._d_is_detect = OpenRTM_aist.instantiateDataType(RTC.TimedLong)
+    """
+    """
+    self._is_detect_outputOut = OpenRTM_aist.OutPort("is_detect_output", self._d_is_detect)
 
 
 
@@ -160,13 +163,14 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
 
     # Set OutPort buffers
     self.addOutPort("target_output",self._target_outputOut)
+    self.addOutPort("is_detect_output",self._is_detect_outputOut)
 
     # Set service provider to Ports
 
     # Set service consumers to Ports
 
     # Set CORBA Service Ports
-    
+
     return RTC.RTC_OK
 
   ###
@@ -268,25 +272,26 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
     if circles is not None:
       circles = np.uint16(np.around(circles))
       mato_point = np.mean(circles[0,:], axis=0)
-      self._d_target_output.data.position.x = float(mato_point[0]) - self.width/2
-      self._d_target_output.data.position.y = -(float(mato_point[1]) - self.height/2)
+      self._d_target_output.data.x = float(mato_point[0]) - self.width/2
+      self._d_target_output.data.y = -(float(mato_point[1]) - self.height/2)
       for i in circles[0,:]:
         # draw the outer circle
         cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
         # draw the center of the circle
         cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
-
+      self._d_is_detect.data = 1
+    else:
+      self._d_is_detect.data = -1
     img2 = cv2.resize(img , (int(self.width*0.3), int(self.height*0.3)))
     gray2 = cv2.resize(gray , (int(self.width*0.3), int(self.height*0.3)))
     cv2.imshow("viewer", img2)
 
     if cv2.waitKey(1) > 0:
       cv2.destroyAllWindows()
-    
     # to do
     print(self._d_target_output)
     self._target_outputOut.write()
-
+    self._is_detect_outputOut.write()
     return RTC.RTC_OK
 
   ###
