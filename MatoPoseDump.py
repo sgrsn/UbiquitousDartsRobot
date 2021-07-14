@@ -57,10 +57,14 @@ class MatoPoseDump(OpenRTM_aist.DataFlowComponentBase):
 	def __init__(self, manager):
 		OpenRTM_aist.DataFlowComponentBase.__init__(self, manager)
 
-		self._d_target_input = OpenRTM_aist.instantiateDataType(RTC.TimedPose2D)
+		self._d_target_input = OpenRTM_aist.instantiateDataType(RTC.TimedPoint2D)
 		"""
 		"""
 		self._target_inputIn = OpenRTM_aist.InPort("target_input", self._d_target_input)
+		self._d_is_detect = OpenRTM_aist.instantiateDataType(RTC.TimedLong)
+		"""
+		"""
+		self._is_detect_inputIn = OpenRTM_aist.InPort("is_detect_input", self._d_is_detect)
 
 
 
@@ -86,6 +90,7 @@ class MatoPoseDump(OpenRTM_aist.DataFlowComponentBase):
 
 		# Set InPort buffers
 		self.addInPort("target_input",self._target_inputIn)
+		self.addInPort("is_detect_input",self._is_detect_inputIn)
 
 		# Set OutPort buffers
 
@@ -177,7 +182,9 @@ class MatoPoseDump(OpenRTM_aist.DataFlowComponentBase):
 	#
 	def onExecute(self, ec_id):
 		self._d_target_input = self._target_inputIn.read()
+		self._d_is_detect = self._is_detect_inputIn.read()
 		print(self._d_target_input)
+		print(self._d_is_detect)
 		return RTC.RTC_OK
 
 	###
@@ -274,4 +281,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
