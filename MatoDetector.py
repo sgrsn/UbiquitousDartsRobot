@@ -17,6 +17,9 @@ sys.path.append(".")
 import RTC
 import OpenRTM_aist
 
+import cv2
+import numpy as np
+
 
 # Import Service implementation class
 # <rtc-template block="service_impl">
@@ -163,7 +166,7 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
     # Set service consumers to Ports
 
     # Set CORBA Service Ports
-
+    
     return RTC.RTC_OK
 
   ###
@@ -217,7 +220,7 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
   #
   #
   def onActivated(self, ec_id):
-    self.capture = cv2.VideoCapture(self._camera_port)
+    self.capture = cv2.VideoCapture(int(self._camera_port[0]))
     ret, img = self.capture.read()
     self.height = img.shape[0]
     self.width = img.shape[1]
@@ -252,19 +255,38 @@ class MatoDetector(OpenRTM_aist.DataFlowComponentBase):
     img = cv2.medianBlur(img,5)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     gray = cv2.medianBlur(gray, 5)
-    circles = cv2.HoughCircles(gray,cv2.HOUGH_GRADIENT,1,self._dp,param1=self._param1,param2=self._param1,minRadius=self._min_radius,maxRadius=self._max_radius)
+    circles = cv2.HoughCircles(
+      gray,
+      cv2.HOUGH_GRADIENT,
+      1,
+      int(self._dp[0]),
+      param1=int(self._param1[0]),
+      param2=int(self._param2[0]),
+      minRadius=int(self._min_radius[0]),
+      maxRadius=int(self._max_radius[0])
+    )
     if circles is not None:
       circles = np.uint16(np.around(circles))
+      mato_point = np.mean(circles[0,:], axis=0)
+      self._d_target_output.data.position.x = float(mato_point[0]) - self.width/2
+      self._d_target_output.data.position.y = -(float(mato_point[1]) - self.height/2)
       for i in circles[0,:]:
-          # draw the outer circle
-          cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
-          # draw the center of the circle
-          cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
-    img2 = cv2.resize(img , (int(width*0.3), int(height*0.3)))
-    gray2 = cv2.resize(gray , (int(width*0.3), int(height*0.3)))
+        # draw the outer circle
+        cv2.circle(img,(i[0],i[1]),i[2],(0,255,0),2)
+        # draw the center of the circle
+        cv2.circle(img,(i[0],i[1]),2,(0,0,255),3)
+
+    img2 = cv2.resize(img , (int(self.width*0.3), int(self.height*0.3)))
+    gray2 = cv2.resize(gray , (int(self.width*0.3), int(self.height*0.3)))
     cv2.imshow("viewer", img2)
+
     if cv2.waitKey(1) > 0:
       cv2.destroyAllWindows()
+    
+    # to do
+    print(self._d_target_output)
+    self._target_outputOut.write()
+
     return RTC.RTC_OK
 
   ###
